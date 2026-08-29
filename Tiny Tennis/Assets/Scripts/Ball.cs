@@ -2,13 +2,23 @@
 
 public class Ball : MonoBehaviour
 {
+    [Header("Настройки Скорости")]
     [SerializeField] private float serveSpeed = 6f;
+    [SerializeField] private float hitSpeed = 9f;
+
+    [Header("Ссылки на объекты")]
     [SerializeField] private Transform playerTransform;
     [SerializeField] private Transform botTransform;
+    [SerializeField] private Collider2D tableCollider;
+
+    [Header("Дистанция удара")]
+    [SerializeField] private float playerHitRadius = 1f;
+    [SerializeField] private float botHitRadius = 1f;
 
     private Rigidbody2D rb;
     private bool isServed = false;
-    private bool isPlayerServing = true; // true — подает игрок, false — бот
+    private bool isPlayerServing = true;
+    private bool isHeadingToBot = true; // Кто сейчас должен отбивать
 
     private void Awake()
     {
@@ -17,24 +27,42 @@ public class Ball : MonoBehaviour
 
     private void Start()
     {
-        ResetForServe(true); // Начинаем с подачи игрока
+        ResetForServe(true);
     }
 
     private void Update()
     {
-        // Если мяч еще не введен в игру — он привязан к подающему
+        // 1. Подача
         if (!isServed)
         {
             Transform currentServer = isPlayerServing ? playerTransform : botTransform;
-
-            // Мяч висит чуть впереди подающего (вдоль Y)
             float offsetYSide = isPlayerServing ? 0.6f : -0.6f;
             transform.position = currentServer.position + new Vector3(0f, offsetYSide, 0f);
 
-            // Подача по кнопке Space (если подает бот — подает автоматически через 1 сек)
             if (isPlayerServing && Input.GetKeyDown(KeyCode.Space))
             {
                 ExecuteServe();
+            }
+            return;
+        }
+
+        // 2. Удар ИГРОКА по Пробелу (только если мяч летит к игроку)
+        if (!isHeadingToBot)
+        {
+            float distanceToPlayer = Vector2.Distance(transform.position, playerTransform.position);
+            if (distanceToPlayer <= playerHitRadius && Input.GetKeyDown(KeyCode.Space))
+            {
+                HitBallToCourt(true); // Отправляем боту
+            }
+        }
+
+        // 3. Автоматический удар БОТА (когда мяч летит к боту и входит в его зону)
+        if (isHeadingToBot)
+        {
+            float distanceToBot = Vector2.Distance(transform.position, botTransform.position);
+            if (distanceToBot <= botHitRadius)
+            {
+                HitBallToCourt(false); // Отправляем игроку
             }
         }
     }
@@ -42,15 +70,57 @@ public class Ball : MonoBehaviour
     public void ExecuteServe()
     {
         isServed = true;
-        // Направление строго прямо: вверх (+1), если подает игрок, или вниз (-1), если бот
-        Vector2 serveDirection = isPlayerServing ? Vector2.up : Vector2.down;
-        rb.linearVelocity = serveDirection * serveSpeed;
+        HitBallToCourt(isPlayerServing);
+    }
+
+    private void HitBallToCourt(bool headingToBot)
+    {
+        isHeadingToBot = headingToBot;
+        float targetX = 0f;
+        float targetY = 0f;
+
+        if (tableCollider != null)
+        {
+            Bounds bounds = tableCollider.bounds;
+            float paddingX = bounds.size.x * 0.12f;
+            targetX = Random.Range(bounds.min.x + paddingX, bounds.max.x - paddingX);
+
+            if (isHeadingToBot)
+            {
+                targetY = Random.Range(bounds.center.y + 0.2f, bounds.max.y - 0.2f);
+            }
+            else
+            {
+                targetY = Random.Range(bounds.min.y + 0.2f, bounds.center.y - 0.2f);
+            }
+        }
+
+        Vector2 targetPosition = new Vector2(targetX, targetY);
+        Vector2 direction = (targetPosition - (Vector2)transform.position).normalized;
+
+        float currentSpeed = isServed ? hitSpeed : serveSpeed;
+        rb.linearVelocity = direction * currentSpeed;
     }
 
     public void ResetForServe(bool playerServes)
     {
         isServed = false;
         isPlayerServing = playerServes;
+        isHeadingToBot = playerServes; // Если подает игрок, мяч полетит к боту
         rb.linearVelocity = Vector2.zero;
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        if (playerTransform != null)
+        {
+            Gizmos.color = Color.yellow;
+            Gizmos.DrawWireSphere(playerTransform.position, playerHitRadius);
+        }
+        if (botTransform != null)
+        {
+            Gizmos.color = Color.red;
+            Gizmos.DrawWireSphere(botTransform.position, botHitRadius);
+        }
     }
 }
