@@ -2,9 +2,11 @@
 
 public class Ball : MonoBehaviour
 {
-    [Header("Настройки Скорости")]
-    [SerializeField] private float serveSpeed = 6f;
-    [SerializeField] private float hitSpeed = 9f;
+    [Header("Настройки Скорости и Ускорения")]
+    [SerializeField] private float serveSpeed = 5f;          // Скорость при подаче
+    [SerializeField] private float initialHitSpeed = 7f;     // Начальная скорость первого удара
+    [SerializeField] private float speedIncrement = 0.6f;    // Прирост скорости за каждый удар
+    [SerializeField] private float maxSpeed = 16f;           // Максимальный предел скорости
 
     [Header("Ссылки на объекты")]
     [SerializeField] private Transform playerTransform;
@@ -12,13 +14,16 @@ public class Ball : MonoBehaviour
     [SerializeField] private Collider2D tableCollider;
 
     [Header("Дистанция удара")]
-    [SerializeField] private float playerHitRadius = 1f;
-    [SerializeField] private float botHitRadius = 1f;
+    [SerializeField] private float playerHitRadius = 1.8f;
+    [SerializeField] private float botHitRadius = 1.6f;
 
     private Rigidbody2D rb;
     private bool isServed = false;
     private bool isPlayerServing = true;
-    private bool isHeadingToBot = true; // Кто сейчас должен отбивать
+    private bool isHeadingToBot = true;
+
+    // Текущая накопленная скорость ралли
+    private float currentSpeed;
 
     private void Awake()
     {
@@ -46,7 +51,7 @@ public class Ball : MonoBehaviour
             return;
         }
 
-        // 2. Удар ИГРОКА по Пробелу (только если мяч летит к игроку)
+        // 2. Удар ИГРОКА по Пробелу
         if (!isHeadingToBot)
         {
             float distanceToPlayer = Vector2.Distance(transform.position, playerTransform.position);
@@ -56,7 +61,7 @@ public class Ball : MonoBehaviour
             }
         }
 
-        // 3. Автоматический удар БОТА (когда мяч летит к боту и входит в его зону)
+        // 3. Автоматический удар БОТА
         if (isHeadingToBot)
         {
             float distanceToBot = Vector2.Distance(transform.position, botTransform.position);
@@ -70,12 +75,29 @@ public class Ball : MonoBehaviour
     public void ExecuteServe()
     {
         isServed = true;
+        currentSpeed = serveSpeed; // Подача начинается с базовой скорости
         HitBallToCourt(isPlayerServing);
     }
 
     private void HitBallToCourt(bool headingToBot)
     {
         isHeadingToBot = headingToBot;
+
+        // Расчет ускорения мяча
+        if (!isServed)
+        {
+            currentSpeed = serveSpeed;
+        }
+        else if (currentSpeed < initialHitSpeed)
+        {
+            currentSpeed = initialHitSpeed;
+        }
+        else
+        {
+            // Увеличиваем скорость за каждый новый удар в ралли
+            currentSpeed = Mathf.Min(currentSpeed + speedIncrement, maxSpeed);
+        }
+
         float targetX = 0f;
         float targetY = 0f;
 
@@ -98,7 +120,6 @@ public class Ball : MonoBehaviour
         Vector2 targetPosition = new Vector2(targetX, targetY);
         Vector2 direction = (targetPosition - (Vector2)transform.position).normalized;
 
-        float currentSpeed = isServed ? hitSpeed : serveSpeed;
         rb.linearVelocity = direction * currentSpeed;
     }
 
@@ -106,7 +127,8 @@ public class Ball : MonoBehaviour
     {
         isServed = false;
         isPlayerServing = playerServes;
-        isHeadingToBot = playerServes; // Если подает игрок, мяч полетит к боту
+        isHeadingToBot = playerServes;
+        currentSpeed = serveSpeed;
         rb.linearVelocity = Vector2.zero;
     }
 
