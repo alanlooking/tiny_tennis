@@ -15,7 +15,10 @@ public class Ball : MonoBehaviour
     [Header("Ссылки на объекты")]
     [SerializeField] private Transform playerTransform;
     [SerializeField] private Transform botTransform;
-    [SerializeField] private Collider2D tableCollider;
+
+    [Header("Зоны приземления (дочерние объекты Table)")]
+    [SerializeField] private Collider2D playerTargetArea; // Прямоугольник игрока (на стороне бота)
+    [SerializeField] private Collider2D botTargetArea;    // Прямоугольник бота (на стороне игрока)
 
     [Header("Дистанция удара")]
     [SerializeField] private float playerHitRadius = 1.5f;
@@ -31,7 +34,6 @@ public class Ball : MonoBehaviour
     private bool isHeadingToBot = true;
     private Coroutine botServeCoroutine;
 
-    // Флаг для защиты от дублирования очков и обработки задержки касания
     private bool isProcessingMiss = false;
 
     private void Awake()
@@ -76,7 +78,7 @@ public class Ball : MonoBehaviour
             }
         }
 
-        // 4. Аут (засчет очка только если мяч совсем улетел за пределы)
+        // 4. Аут
         if (Mathf.Abs(transform.position.y) > outBoundsY)
         {
             bool playerWonPoint = transform.position.y > 0;
@@ -102,9 +104,7 @@ public class Ball : MonoBehaviour
 
     private void HitBallToCourt(bool headingToBot)
     {
-        // Если игрок успел отбить мяч — отменяем зафиксированный промах при касании
         isProcessingMiss = false;
-
         isHeadingToBot = headingToBot;
 
         if (!isServed)
@@ -123,20 +123,21 @@ public class Ball : MonoBehaviour
         float targetX = 0f;
         float targetY = 0f;
 
-        if (tableCollider != null)
-        {
-            Bounds bounds = tableCollider.bounds;
-            float paddingX = bounds.size.x * 0.12f;
-            targetX = Random.Range(bounds.min.x + paddingX, bounds.max.x - paddingX);
+        // Выбираем соответствующую зону удара
+        Collider2D targetArea = isHeadingToBot ? playerTargetArea : botTargetArea;
 
-            if (isHeadingToBot)
-            {
-                targetY = Random.Range(bounds.center.y + 0.2f, bounds.max.y - 0.2f);
-            }
-            else
-            {
-                targetY = Random.Range(bounds.min.y + 0.2f, bounds.center.y - 0.2f);
-            }
+        if (targetArea != null)
+        {
+            Bounds bounds = targetArea.bounds;
+
+            // Выбираем случайную точку строго внутри границ прямоугольника
+            targetX = Random.Range(bounds.min.x, bounds.max.x);
+            targetY = Random.Range(bounds.min.y, bounds.max.y);
+        }
+        else
+        {
+            // Резервный вариант, если забыл перетащить ссылки в Инспектор
+            targetY = isHeadingToBot ? 2f : -2f;
         }
 
         Vector2 targetPosition = new Vector2(targetX, targetY);
@@ -149,26 +150,22 @@ public class Ball : MonoBehaviour
     {
         if (!isServed || isProcessingMiss) return;
 
-        // Если мяч летел к Игроку и задел его
         if (!isHeadingToBot && (collision.gameObject.CompareTag("Player") || collision.gameObject.name == "Player"))
         {
-            StartCoroutine(DelayedBodyHitPoint(false)); // Очко боту
+            StartCoroutine(DelayedBodyHitPoint(false));
         }
-        // Если мяч летел к БОТУ и задел его
         else if (isHeadingToBot && (collision.gameObject.CompareTag("Bot") || collision.gameObject.name == "Bot"))
         {
-            StartCoroutine(DelayedBodyHitPoint(true)); // Очко игроку
+            StartCoroutine(DelayedBodyHitPoint(true));
         }
     }
 
-    // Небольшая задержка перед засчетом очка, чтобы дать игроку шанс нажать Пробел
     private IEnumerator DelayedBodyHitPoint(bool playerWonPoint)
     {
         isProcessingMiss = true;
 
         yield return new WaitForSeconds(0.25f);
 
-        // Если за время задержки мяч так и не отбили (isProcessingMiss остался true) — отдаём очко
         if (isProcessingMiss)
         {
             GameManager.Instance.ScorePoint(playerWonPoint);
@@ -181,7 +178,6 @@ public class Ball : MonoBehaviour
 
         isProcessingMiss = false;
 
-        // Вызов сброса позиции бота в случайную точку на его линии
         BotController bot = FindObjectOfType<BotController>();
         if (bot != null) bot.ResetPosition();
 
@@ -191,7 +187,6 @@ public class Ball : MonoBehaviour
         currentSpeed = serveSpeed;
         rb.linearVelocity = Vector2.zero;
 
-        // Если подача бота — запускаем таймер автоматической подачи
         if (!isPlayerServing)
         {
             botServeCoroutine = StartCoroutine(BotServeRoutine());
