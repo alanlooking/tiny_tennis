@@ -1,12 +1,16 @@
-﻿using UnityEngine;
+﻿using System.Collections;
+using UnityEngine;
 
 public class Ball : MonoBehaviour
 {
-    [Header("Настройки Скорости и Ускорения")]
+    [Header("Настройки Скорости")]
     [SerializeField] private float serveSpeed = 5f;
     [SerializeField] private float initialHitSpeed = 7f;
-    [SerializeField] private float speedIncrement = 0.6f;
+    [SerializeField] private float speedIncrement = 0.5f;
     [SerializeField] private float maxSpeed = 16f;
+
+    [Header("Задержка авто-подачи бота")]
+    [SerializeField] private float botServeDelay = 1.2f;
 
     [Header("Ссылки на объекты")]
     [SerializeField] private Transform playerTransform;
@@ -14,27 +18,25 @@ public class Ball : MonoBehaviour
     [SerializeField] private Collider2D tableCollider;
 
     [Header("Дистанция удара")]
-    [SerializeField] private float playerHitRadius = 1.8f;
-    [SerializeField] private float botHitRadius = 1.6f;
+    [SerializeField] private float playerHitRadius = 1.5f;
+    [SerializeField] private float botHitRadius = 1f;
 
-    [Header("Границы для фиксации Аута")]
-    [SerializeField] private float outBoundsY = 8f; // Расстояние по Y, дальше которого мяч уходит в аут
+    [Header("Граница аута")]
+    [SerializeField] private float outBoundsY = 7.5f;
 
     private Rigidbody2D rb;
+    private float currentSpeed;
     private bool isServed = false;
     private bool isPlayerServing = true;
     private bool isHeadingToBot = true;
+    private Coroutine botServeCoroutine;
 
-    private float currentSpeed;
+    // Флаг для защиты от дублирования очков и обработки задержки касания
+    private bool isProcessingMiss = false;
 
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
-    }
-
-    private void Start()
-    {
-        ResetForServe(true);
     }
 
     private void Update()
@@ -46,6 +48,7 @@ public class Ball : MonoBehaviour
             float offsetYSide = isPlayerServing ? 0.6f : -0.6f;
             transform.position = currentServer.position + new Vector3(0f, offsetYSide, 0f);
 
+            // Подача Игрока по Пробелу
             if (isPlayerServing && Input.GetKeyDown(KeyCode.Space))
             {
                 ExecuteServe();
@@ -53,30 +56,29 @@ public class Ball : MonoBehaviour
             return;
         }
 
-        // 2. Попытка удара ИГРОКА по Пробелу
+        // 2. Удар Игрока
         if (!isHeadingToBot)
         {
             float distanceToPlayer = Vector2.Distance(transform.position, playerTransform.position);
             if (distanceToPlayer <= playerHitRadius && Input.GetKeyDown(KeyCode.Space))
             {
-                HitBallToCourt(true); // Успешный удар
+                HitBallToCourt(true);
             }
         }
 
-        // 3. Автоматический удар БОТА
+        // 3. Удар Бота
         if (isHeadingToBot)
         {
             float distanceToBot = Vector2.Distance(transform.position, botTransform.position);
             if (distanceToBot <= botHitRadius)
             {
-                HitBallToCourt(false); // Успешный удар бота
+                HitBallToCourt(false);
             }
         }
 
-        // 4. Проверка на АУТ (мяч улетел за границы поля)
+        // 4. Аут (засчет очка только если мяч совсем улетел за пределы)
         if (Mathf.Abs(transform.position.y) > outBoundsY)
         {
-            // Если мяч улетел за верхний край — очко игроку. За нижний — боту.
             bool playerWonPoint = transform.position.y > 0;
             GameManager.Instance.ScorePoint(playerWonPoint);
         }
@@ -89,8 +91,20 @@ public class Ball : MonoBehaviour
         HitBallToCourt(isPlayerServing);
     }
 
+    private IEnumerator BotServeRoutine()
+    {
+        yield return new WaitForSeconds(botServeDelay);
+        if (!isServed && !isPlayerServing)
+        {
+            ExecuteServe();
+        }
+    }
+
     private void HitBallToCourt(bool headingToBot)
     {
+        // Если игрок успел отбить мяч — отменяем зафиксированный промах при касании
+        isProcessingMiss = false;
+
         isHeadingToBot = headingToBot;
 
         if (!isServed)
@@ -131,29 +145,56 @@ public class Ball : MonoBehaviour
         rb.linearVelocity = direction * currentSpeed;
     }
 
-    // Фиксация касания ТЕЛОМ (когда мяч попадает в игрока/бота, но удар по кнопке не был сделан)
     private void OnCollisionEnter2D(Collision2D collision)
     {
-        if (!isServed) return;
+        if (!isServed || isProcessingMiss) return;
 
-        // Если мяч летит к ИГРОКУ и врезается в него телом — очко БОТУ
+        // Если мяч летел к Игроку и задел его
         if (!isHeadingToBot && (collision.gameObject.CompareTag("Player") || collision.gameObject.name == "Player"))
         {
-            GameManager.Instance.ScorePoint(false); // Очко боту
+            StartCoroutine(DelayedBodyHitPoint(false)); // Очко боту
         }
-        // Если мяч летит к БОТУ и врезается в него — очко ИГРОКУ
+        // Если мяч летел к БОТУ и задел его
         else if (isHeadingToBot && (collision.gameObject.CompareTag("Bot") || collision.gameObject.name == "Bot"))
         {
-            GameManager.Instance.ScorePoint(true); // Очко игроку
+            StartCoroutine(DelayedBodyHitPoint(true)); // Очко игроку
+        }
+    }
+
+    // Небольшая задержка перед засчетом очка, чтобы дать игроку шанс нажать Пробел
+    private IEnumerator DelayedBodyHitPoint(bool playerWonPoint)
+    {
+        isProcessingMiss = true;
+
+        yield return new WaitForSeconds(0.25f);
+
+        // Если за время задержки мяч так и не отбили (isProcessingMiss остался true) — отдаём очко
+        if (isProcessingMiss)
+        {
+            GameManager.Instance.ScorePoint(playerWonPoint);
         }
     }
 
     public void ResetForServe(bool playerServes)
     {
+        if (botServeCoroutine != null) StopCoroutine(botServeCoroutine);
+
+        isProcessingMiss = false;
+
+        // Вызов сброса позиции бота в случайную точку на его линии
+        BotController bot = FindObjectOfType<BotController>();
+        if (bot != null) bot.ResetPosition();
+
         isServed = false;
         isPlayerServing = playerServes;
         isHeadingToBot = playerServes;
         currentSpeed = serveSpeed;
         rb.linearVelocity = Vector2.zero;
+
+        // Если подача бота — запускаем таймер автоматической подачи
+        if (!isPlayerServing)
+        {
+            botServeCoroutine = StartCoroutine(BotServeRoutine());
+        }
     }
 }
