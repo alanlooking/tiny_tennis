@@ -21,7 +21,7 @@ public class Ball : MonoBehaviour
     [SerializeField] private Collider2D botTargetArea;    // Зона на стороне игрока
 
     [Header("Дистанция удара")]
-    [SerializeField] private float playerHitRadius = 1.5f;
+    [SerializeField] private float playerHitRadius = 1.6f;
     [SerializeField] private float botHitRadius = 1f;
 
     [Header("Граница аута")]
