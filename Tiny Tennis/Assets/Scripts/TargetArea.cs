@@ -8,14 +8,11 @@ public class TargetArea : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        // Если в зону влетел мяч
-        if (other.CompareTag("Ball") || other.GetComponent<Ball>() != null)
+        // Проверяем наличие компонента Ball напрямую, без вызова CompareTag
+        Ball ball = other.GetComponent<Ball>();
+        if (ball != null)
         {
-            Ball ball = other.GetComponent<Ball>();
-            if (ball != null)
-            {
-                ball.RegisterTargetHit(isBotSideArea);
-            }
+            ball.RegisterTargetHit(isBotSideArea);
         }
     }
 }
