@@ -35,6 +35,7 @@ public class Ball : MonoBehaviour
     private Coroutine botServeCoroutine;
 
     private bool isProcessingMiss = false;
+    private bool lastHitWasOut = false; // Флаг: был ли последний удар заведомым аутом (мимо стола)
 
     private void Awake()
     {
@@ -50,7 +51,6 @@ public class Ball : MonoBehaviour
             float offsetYSide = isPlayerServing ? 0.6f : -0.6f;
             transform.position = currentServer.position + new Vector3(0f, offsetYSide, 0f);
 
-            // Подача Игрока по Пробелу
             if (isPlayerServing && Input.GetKeyDown(KeyCode.Space))
             {
                 ExecuteServe();
@@ -78,10 +78,22 @@ public class Ball : MonoBehaviour
             }
         }
 
-        // 4. Аут
+        // 4. Проверка на АУТ / Вылет за пределы
         if (Mathf.Abs(transform.position.y) > outBoundsY)
         {
-            bool playerWonPoint = transform.position.y > 0;
+            bool playerWonPoint;
+
+            if (lastHitWasOut)
+            {
+                // Если игрок/бот ударил мимо стола (в аут), очко отдаем тому, кто ПРИНИМАЛ
+                playerWonPoint = !isHeadingToBot;
+            }
+            else
+            {
+                // Стандарт: если мяч пролетел за спину принимающего
+                playerWonPoint = transform.position.y > 0;
+            }
+
             GameManager.Instance.ScorePoint(playerWonPoint);
         }
     }
@@ -106,6 +118,7 @@ public class Ball : MonoBehaviour
     {
         isProcessingMiss = false;
         isHeadingToBot = headingToBot;
+        lastHitWasOut = false;
 
         if (!isServed)
         {
@@ -123,21 +136,25 @@ public class Ball : MonoBehaviour
         float targetX = 0f;
         float targetY = 0f;
 
-        // Выбираем соответствующую зону удара
         Collider2D targetArea = isHeadingToBot ? playerTargetArea : botTargetArea;
 
         if (targetArea != null)
         {
             Bounds bounds = targetArea.bounds;
 
-            // Выбираем случайную точку строго внутри границ прямоугольника
-            targetX = Random.Range(bounds.min.x, bounds.max.x);
+            // Если бьющий слишком далеко вбоку, мы гарантируем, что вектор всё равно идёт В СТОЛ
+            float hitterX = transform.position.x;
+            if (Mathf.Abs(hitterX) > bounds.extents.x * 1.5f)
+            {
+                // Принудительно целимся ближе к центру прямоугольника
+                targetX = Random.Range(bounds.min.x + 0.3f, bounds.max.x - 0.3f);
+            }
+            else
+            {
+                targetX = Random.Range(bounds.min.x, bounds.max.x);
+            }
+
             targetY = Random.Range(bounds.min.y, bounds.max.y);
-        }
-        else
-        {
-            // Резервный вариант, если забыл перетащить ссылки в Инспектор
-            targetY = isHeadingToBot ? 2f : -2f;
         }
 
         Vector2 targetPosition = new Vector2(targetX, targetY);
@@ -150,13 +167,15 @@ public class Ball : MonoBehaviour
     {
         if (!isServed || isProcessingMiss) return;
 
+        // Если мяч задел тело ИГРОКА (не успел отбить)
         if (!isHeadingToBot && (collision.gameObject.CompareTag("Player") || collision.gameObject.name == "Player"))
         {
-            StartCoroutine(DelayedBodyHitPoint(false));
+            StartCoroutine(DelayedBodyHitPoint(false)); // Очко боту
         }
+        // Если мяч задел тело БОТА
         else if (isHeadingToBot && (collision.gameObject.CompareTag("Bot") || collision.gameObject.name == "Bot"))
         {
-            StartCoroutine(DelayedBodyHitPoint(true));
+            StartCoroutine(DelayedBodyHitPoint(true)); // Очко игроку
         }
     }
 
@@ -164,10 +183,13 @@ public class Ball : MonoBehaviour
     {
         isProcessingMiss = true;
 
-        yield return new WaitForSeconds(0.25f);
+        // Даём короткое окно на нажатие Пробела (0.2 сек)
+        yield return new WaitForSeconds(0.2f);
 
+        // Если очко все ещё не отбито — останавливаем мяч и завершаем раунд
         if (isProcessingMiss)
         {
+            rb.linearVelocity = Vector2.zero; // Останавливаем медленное качение
             GameManager.Instance.ScorePoint(playerWonPoint);
         }
     }
@@ -177,6 +199,7 @@ public class Ball : MonoBehaviour
         if (botServeCoroutine != null) StopCoroutine(botServeCoroutine);
 
         isProcessingMiss = false;
+        lastHitWasOut = false;
 
         BotController bot = FindObjectOfType<BotController>();
         if (bot != null) bot.ResetPosition();

@@ -24,8 +24,10 @@ public class BotController : MonoBehaviour
     {
         if (ballTransform == null) return;
 
-        // Бот следит за мячом по горизонтали X
-        float targetX = Mathf.MoveTowards(transform.position.x, ballTransform.position.x, speed * Time.deltaTime);
+        // Рассчитываем целевую X, но не даём боту выходить за пределы стола (например, от -2.5f до 2.5f)
+        float clampedBallX = Mathf.Clamp(ballTransform.position.x, -2.5f, 2.5f);
+
+        float targetX = Mathf.MoveTowards(transform.position.x, clampedBallX, speed * Time.deltaTime);
         transform.position = new Vector3(targetX, targetY, transform.position.z);
     }
 
