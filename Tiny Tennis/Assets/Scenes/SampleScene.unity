@@ -129,6 +129,7 @@ GameObject:
   m_Component:
   - component: {fileID: 11074897}
   - component: {fileID: 11074898}
+  - component: {fileID: 11074899}
   m_Layer: 8
   m_Name: BotTargetArea
   m_TagString: Untagged
@@ -197,6 +198,19 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 1, y: 0.2}
   m_EdgeRadius: 0
+--- !u!114 &11074899
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 11074896}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 20bca468d063698428c3d709f04a17db, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  isBotSideArea: 0
 --- !u!1 &49960288
 GameObject:
   m_ObjectHideFlags: 0
@@ -874,6 +888,7 @@ GameObject:
   m_Component:
   - component: {fileID: 662032820}
   - component: {fileID: 662032821}
+  - component: {fileID: 662032822}
   m_Layer: 8
   m_Name: PlayerTargetArea
   m_TagString: Untagged
@@ -942,6 +957,19 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 1, y: 0.2}
   m_EdgeRadius: 0
+--- !u!114 &662032822
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 662032819}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 20bca468d063698428c3d709f04a17db, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  isBotSideArea: 1
 --- !u!1 &816321907
 GameObject:
   m_ObjectHideFlags: 0
@@ -1513,7 +1541,7 @@ CircleCollider2D:
   m_Enabled: 1
   serializedVersion: 3
   m_Density: 1
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 6200000, guid: d8377e6dd26065a4eb16c54a70d10e9f, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -1547,7 +1575,7 @@ Rigidbody2D:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1628722531}
-  m_BodyType: 0
+  m_BodyType: 1
   m_Simulated: 1
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0

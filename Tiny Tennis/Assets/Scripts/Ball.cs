@@ -17,8 +17,8 @@ public class Ball : MonoBehaviour
     [SerializeField] private Transform botTransform;
 
     [Header("Зоны приземления (дочерние объекты Table)")]
-    [SerializeField] private Collider2D playerTargetArea; // Прямоугольник игрока (на стороне бота)
-    [SerializeField] private Collider2D botTargetArea;    // Прямоугольник бота (на стороне игрока)
+    [SerializeField] private Collider2D playerTargetArea; // Зона на стороне бота
+    [SerializeField] private Collider2D botTargetArea;    // Зона на стороне игрока
 
     [Header("Дистанция удара")]
     [SerializeField] private float playerHitRadius = 1.5f;
@@ -35,7 +35,8 @@ public class Ball : MonoBehaviour
     private Coroutine botServeCoroutine;
 
     private bool isProcessingMiss = false;
-    private bool lastHitWasOut = false; // Флаг: был ли последний удар заведомым аутом (мимо стола)
+    private bool isRoundEnding = false;
+    private bool hasHitTargetArea = false; // Флаг: мяч коснулся целевой зоны стола
 
     private void Awake()
     {
@@ -44,6 +45,8 @@ public class Ball : MonoBehaviour
 
     private void Update()
     {
+        if (isRoundEnding) return;
+
         // 1. Подача
         if (!isServed)
         {
@@ -78,24 +81,51 @@ public class Ball : MonoBehaviour
             }
         }
 
-        // 4. Проверка на АУТ / Вылет за пределы
+        // 4. ПРОВЕРКА НА ВЫЛЕТ ЗА ЭКРАН
         if (Mathf.Abs(transform.position.y) > outBoundsY)
         {
-            bool playerWonPoint;
-
-            if (lastHitWasOut)
-            {
-                // Если игрок/бот ударил мимо стола (в аут), очко отдаем тому, кто ПРИНИМАЛ
-                playerWonPoint = !isHeadingToBot;
-            }
-            else
-            {
-                // Стандарт: если мяч пролетел за спину принимающего
-                playerWonPoint = transform.position.y > 0;
-            }
-
-            GameManager.Instance.ScorePoint(playerWonPoint);
+            ProcessOutOrScore();
         }
+    }
+
+    /// <summary>
+    /// Вызывается из TargetArea.cs при касании стола
+    /// </summary>
+    public void RegisterTargetHit(bool isBotSideArea)
+    {
+        if (isRoundEnding) return;
+
+        // Если мяч летел к боту и попал в зону бота OR летел к игроку и попал в зону игрока
+        if ((isHeadingToBot && isBotSideArea) || (!isHeadingToBot && !isBotSideArea))
+        {
+            hasHitTargetArea = true;
+            Debug.Log($"[TargetArea] Мяч попал в стол {(isBotSideArea ? "Бота" : "Игрока")}!");
+        }
+    }
+
+    private void ProcessOutOrScore()
+    {
+        if (isRoundEnding) return;
+        isRoundEnding = true;
+
+        rb.linearVelocity = Vector2.zero;
+
+        bool playerWonPoint;
+
+        if (hasHitTargetArea)
+        {
+            // Мяч КОСНУЛСЯ стола, но принимающий его пропустил -> Очко БЬЮЩЕМУ
+            playerWonPoint = isHeadingToBot;
+        }
+        else
+        {
+            // Мяч НЕ коснулся стола (АУТ) -> Очко ПРИНИМАЮЩЕМУ
+            playerWonPoint = !isHeadingToBot;
+        }
+
+        Debug.Log($"[Итог розыгрыша] Летел к боту: {isHeadingToBot} | Попадание в стол: {hasHitTargetArea} | Очко отдано: {(playerWonPoint ? "Игроку" : "Боту")}");
+
+        GameManager.Instance.ScorePoint(playerWonPoint);
     }
 
     public void ExecuteServe()
@@ -117,8 +147,8 @@ public class Ball : MonoBehaviour
     private void HitBallToCourt(bool headingToBot)
     {
         isProcessingMiss = false;
+        hasHitTargetArea = false; // Сбрасываем касание стола перед новым ударом
         isHeadingToBot = headingToBot;
-        lastHitWasOut = false;
 
         if (!isServed)
         {
@@ -141,19 +171,7 @@ public class Ball : MonoBehaviour
         if (targetArea != null)
         {
             Bounds bounds = targetArea.bounds;
-
-            // Если бьющий слишком далеко вбоку, мы гарантируем, что вектор всё равно идёт В СТОЛ
-            float hitterX = transform.position.x;
-            if (Mathf.Abs(hitterX) > bounds.extents.x * 1.5f)
-            {
-                // Принудительно целимся ближе к центру прямоугольника
-                targetX = Random.Range(bounds.min.x + 0.3f, bounds.max.x - 0.3f);
-            }
-            else
-            {
-                targetX = Random.Range(bounds.min.x, bounds.max.x);
-            }
-
+            targetX = Random.Range(bounds.min.x, bounds.max.x);
             targetY = Random.Range(bounds.min.y, bounds.max.y);
         }
 
@@ -165,17 +183,15 @@ public class Ball : MonoBehaviour
 
     private void OnCollisionEnter2D(Collision2D collision)
     {
-        if (!isServed || isProcessingMiss) return;
+        if (!isServed || isProcessingMiss || isRoundEnding) return;
 
-        // Если мяч задел тело ИГРОКА (не успел отбить)
         if (!isHeadingToBot && (collision.gameObject.CompareTag("Player") || collision.gameObject.name == "Player"))
         {
-            StartCoroutine(DelayedBodyHitPoint(false)); // Очко боту
+            StartCoroutine(DelayedBodyHitPoint(false));
         }
-        // Если мяч задел тело БОТА
         else if (isHeadingToBot && (collision.gameObject.CompareTag("Bot") || collision.gameObject.name == "Bot"))
         {
-            StartCoroutine(DelayedBodyHitPoint(true)); // Очко игроку
+            StartCoroutine(DelayedBodyHitPoint(true));
         }
     }
 
@@ -183,13 +199,12 @@ public class Ball : MonoBehaviour
     {
         isProcessingMiss = true;
 
-        // Даём короткое окно на нажатие Пробела (0.2 сек)
         yield return new WaitForSeconds(0.2f);
 
-        // Если очко все ещё не отбито — останавливаем мяч и завершаем раунд
-        if (isProcessingMiss)
+        if (isProcessingMiss && !isRoundEnding)
         {
-            rb.linearVelocity = Vector2.zero; // Останавливаем медленное качение
+            isRoundEnding = true;
+            rb.linearVelocity = Vector2.zero;
             GameManager.Instance.ScorePoint(playerWonPoint);
         }
     }
@@ -199,9 +214,10 @@ public class Ball : MonoBehaviour
         if (botServeCoroutine != null) StopCoroutine(botServeCoroutine);
 
         isProcessingMiss = false;
-        lastHitWasOut = false;
+        isRoundEnding = false;
+        hasHitTargetArea = false;
 
-        BotController bot = FindObjectOfType<BotController>();
+        BotController bot = FindFirstObjectByType<BotController>();
         if (bot != null) bot.ResetPosition();
 
         isServed = false;

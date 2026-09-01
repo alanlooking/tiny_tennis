@@ -13,7 +13,7 @@ public class BotController : MonoBehaviour
     {
         defaultPosition = new Vector3(defaultX, targetY, transform.position.z);
         
-        Ball ball = FindObjectOfType<Ball>();
+        Ball ball = FindFirstObjectByType<Ball>();
         if (ball != null)
         {
             ballTransform = ball.transform;

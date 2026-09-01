@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -22,10 +23,18 @@ public class GameManager : MonoBehaviour
 
     private void Awake()
     {
-        if (Instance == null) Instance = this;
-        else Destroy(gameObject);
+        if (Instance == null)
+        {
+            Instance = this;
+        }
+        else
+        {
+            Destroy(gameObject);
+            return;
+        }
 
-        ball = FindObjectOfType<Ball>();
+        // ИСПРАВЛЕНО: Присваиваем значение полю класса, а не создаем локальную переменную
+        ball = FindFirstObjectByType<Ball>();
     }
 
     private void Start()
@@ -39,11 +48,18 @@ public class GameManager : MonoBehaviour
         botScore = 0;
         totalPointsPlayed = 0;
 
-        // 3. Жребий: случайно определяем, кто подает первым
+        // Жребий: случайно определяем, кто подает первым
         isPlayerServing = Random.value > 0.5f;
 
         UpdateUI();
-        if (ball != null) ball.ResetForServe(isPlayerServing);
+
+        // Если при старте ball не успел найтись в Awake, пробуем найти ещё раз
+        if (ball == null) ball = FindFirstObjectByType<Ball>();
+
+        if (ball != null)
+        {
+            ball.ResetForServe(isPlayerServing);
+        }
     }
 
     public void ScorePoint(bool playerWonPoint)
@@ -53,7 +69,7 @@ public class GameManager : MonoBehaviour
 
         totalPointsPlayed++;
 
-        // 4. Логика смены подачи и правил "Больше/Меньше" (Deuce)
+        // Логика смены подачи и правил "Больше/Меньше" (Deuce)
         bool isDeuce = (playerScore >= 10 && botScore >= 10);
 
         if (isDeuce)
@@ -75,12 +91,29 @@ public class GameManager : MonoBehaviour
         // Проверка на победу с разницей в 2 очка
         if (CheckWinCondition())
         {
-            StartNewMatch();
+            StartCoroutine(ResetMatchWithDelay(1.5f));
         }
         else
         {
-            if (ball != null) ball.ResetForServe(isPlayerServing);
+            StartCoroutine(ResetRoundWithDelay(1.0f));
         }
+    }
+
+    private IEnumerator ResetRoundWithDelay(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+
+        if (ball == null) ball = FindFirstObjectByType<Ball>();
+        if (ball != null)
+        {
+            ball.ResetForServe(isPlayerServing);
+        }
+    }
+
+    private IEnumerator ResetMatchWithDelay(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        StartNewMatch();
     }
 
     private bool CheckWinCondition()
