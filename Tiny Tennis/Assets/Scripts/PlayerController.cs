@@ -11,6 +11,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private Animator animator;
     [SerializeField] private string primaryHitTrigger = "HitPrimary";
     [SerializeField] private string alternateHitTrigger = "HitAlternate";
+    [SerializeField] private string isMovingBool = "IsMoving";
 
     private Rigidbody2D rb;
     private Vector2 moveInput;
@@ -35,7 +36,7 @@ public class PlayerController : MonoBehaviour
 
         if (animator == null)
         {
-            Debug.LogWarning("[PlayerController] Animator не назначен — анимации ударов не будут воспроизводиться");
+            Debug.LogWarning("[PlayerController] Animator не назначен — анимации работать не будут");
         }
     }
 
@@ -47,11 +48,8 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    // Вызывается мячом при каждом ударе игрока (включая подачу)
     private void HandlePlayerHit(HitType hitType)
     {
-        Debug.Log($"[Анимация] Пришёл удар: {hitType}");
-
         if (animator == null) return;
 
         animator.SetTrigger(hitType == HitType.Primary
@@ -65,6 +63,12 @@ public class PlayerController : MonoBehaviour
         float moveY = Input.GetAxisRaw("Vertical");
 
         moveInput = new Vector2(moveX, moveY).normalized;
+
+        // Ходьба: двигаемся или стоим
+        if (animator != null)
+        {
+            animator.SetBool(isMovingBool, moveInput != Vector2.zero);
+        }
     }
 
     private void FixedUpdate()
