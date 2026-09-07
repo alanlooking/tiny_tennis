@@ -60,7 +60,8 @@ public class Ball : MonoBehaviour
     // Публичные свойства для BotController
     public bool IsServed => isServed;
     public bool IsHeadingToBot => isHeadingToBot;
-    public Vector2 Velocity => rb.linearVelocity; // скорость мяча для прогноза бота
+    public Vector2 Velocity => rb.linearVelocity;
+    public float Spin => spin; // текущая закрутка — бот использует её в прогнозе
 
     private void Awake()
     {
@@ -111,7 +112,9 @@ public class Ball : MonoBehaviour
             float distanceToBot = Vector2.Distance(transform.position, botTransform.position);
             if (distanceToBot <= botHitRadius)
             {
-                HitBallToCourt(false, HitType.Primary);
+                // Бот сам решает, крутить или бить прямо
+                HitType botHitType = (bot != null) ? bot.ChooseHitType() : HitType.Primary;
+                HitBallToCourt(false, botHitType);
             }
         }
 
