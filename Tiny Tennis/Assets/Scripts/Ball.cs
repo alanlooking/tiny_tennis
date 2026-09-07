@@ -1,6 +1,9 @@
 ﻿using System.Collections;
 using UnityEngine;
 
+// Тип удара — используется пока только для анимаций
+public enum HitType { Primary, Alternate }
+
 public class Ball : MonoBehaviour
 {
     [Header("Настройки Скорости")]
@@ -31,6 +34,10 @@ public class Ball : MonoBehaviour
     [Header("Страховка от зависания розыгрыша")]
     [SerializeField] private float roundTimeout = 8f;
 
+    // События для анимаций ракеток (подпишешься, когда появятся Animator'ы)
+    public event System.Action<HitType> OnPlayerHit;
+    public event System.Action OnBotHit;
+
     private Rigidbody2D rb;
     private SpriteRenderer spriteRenderer;
     private BotController bot;
@@ -60,7 +67,7 @@ public class Ball : MonoBehaviour
     {
         if (isRoundEnding) return;
 
-        // 1. Подача
+        // 1. Подача (осталась на Space; анимация — основная)
         if (!isServed)
         {
             Transform currentServer = isPlayerServing ? playerTransform : botTransform;
@@ -78,9 +85,16 @@ public class Ball : MonoBehaviour
         if (!isHeadingToBot)
         {
             float distanceToPlayer = Vector2.Distance(transform.position, playerTransform.position);
-            if (distanceToPlayer <= playerHitRadius && Input.GetKeyDown(KeyCode.Space))
+            if (distanceToPlayer <= playerHitRadius)
             {
-                HitBallToCourt(true);
+                if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1))
+                {
+                    HitBallToCourt(true, HitType.Primary);
+                }
+                else if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2))
+                {
+                    HitBallToCourt(true, HitType.Alternate);
+                }
             }
         }
 
@@ -90,7 +104,7 @@ public class Ball : MonoBehaviour
             float distanceToBot = Vector2.Distance(transform.position, botTransform.position);
             if (distanceToBot <= botHitRadius)
             {
-                HitBallToCourt(false);
+                HitBallToCourt(false, HitType.Primary);
             }
         }
 
@@ -129,12 +143,10 @@ public class Ball : MonoBehaviour
 
         if (hasHitTargetArea)
         {
-            // Мяч попал в стол, принимающий не отбил -> Очко бьющему
             playerWonPoint = isHeadingToBot;
         }
         else
         {
-            // Аут -> Очко принимающему
             playerWonPoint = !isHeadingToBot;
         }
 
@@ -147,7 +159,7 @@ public class Ball : MonoBehaviour
     {
         isServed = true;
         currentSpeed = serveSpeed;
-        HitBallToCourt(isPlayerServing);
+        HitBallToCourt(isPlayerServing, HitType.Primary);
     }
 
     private IEnumerator BotServeRoutine()
@@ -159,7 +171,7 @@ public class Ball : MonoBehaviour
         }
     }
 
-    private void HitBallToCourt(bool headingToBot)
+    private void HitBallToCourt(bool headingToBot, HitType hitType)
     {
         lastHitTime = Time.time;
         hasHitTargetArea = false;
@@ -194,6 +206,10 @@ public class Ball : MonoBehaviour
         Vector2 direction = (targetPosition - (Vector2)transform.position).normalized;
 
         rb.linearVelocity = direction * currentSpeed;
+
+        // Уведомляем будущие анимации, какой удар был сыгран
+        if (headingToBot) OnPlayerHit?.Invoke(hitType);
+        else OnBotHit?.Invoke();
     }
 
     public void ResetForServe(bool playerServes)
