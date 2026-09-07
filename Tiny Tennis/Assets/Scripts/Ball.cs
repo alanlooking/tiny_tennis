@@ -34,6 +34,10 @@ public class Ball : MonoBehaviour
     [Header("Страховка от зависания розыгрыша")]
     [SerializeField] private float roundTimeout = 8f;
 
+    [Header("Кручение (альтернативный удар)")]
+    [Tooltip("Сила закрутки: больше = круче дуга. 0 = выключить")]
+    [SerializeField] private float spinAcceleration = 8f;
+
     // События для анимаций ракеток
     public event System.Action<HitType> OnPlayerHit;
     public event System.Action OnBotHit;
@@ -43,6 +47,7 @@ public class Ball : MonoBehaviour
     private BotController bot;
     private float currentSpeed;
     private float lastHitTime;
+    private float spin; // Текущая закрутка: 0 = мяч летит прямо
 
     private bool isServed = false;
     private bool isPlayerServing = true;
@@ -119,6 +124,24 @@ public class Ball : MonoBehaviour
         }
     }
 
+    private void FixedUpdate()
+    {
+        if (!isServed || isRoundEnding) return;
+        if (Mathf.Abs(spin) < 0.01f) return;
+
+        Vector2 vel = rb.linearVelocity;
+        float speed = vel.magnitude;
+        if (speed < 0.01f) return;
+
+        // Перпендикуляр к текущей скорости (поворот на 90°)
+        Vector2 perp = new Vector2(-vel.y, vel.x) / speed;
+
+        // Поворачиваем вектор скорости, СОХРАНЯЯ его длину —
+        // мяч летит по идеальной дуге, темп игры не меняется
+        Vector2 newVel = vel + perp * (spin * Time.fixedDeltaTime);
+        rb.linearVelocity = newVel.normalized * speed;
+    }
+
     /// <summary>
     /// Вызывается из TargetArea.cs при касании стола
     /// </summary>
@@ -180,6 +203,12 @@ public class Ball : MonoBehaviour
         hasHitTargetArea = false;
         isHeadingToBot = headingToBot;
 
+        // Альтернативный удар закручивает мяч в случайную сторону,
+        // основной и удары бота — прямой полёт
+        spin = (hitType == HitType.Alternate)
+            ? spinAcceleration * (Random.value > 0.5f ? 1f : -1f)
+            : 0f;
+
         if (!isServed)
         {
             currentSpeed = serveSpeed;
@@ -230,6 +259,7 @@ public class Ball : MonoBehaviour
         isHeadingToBot = playerServes;
         currentSpeed = serveSpeed;
         rb.linearVelocity = Vector2.zero;
+        spin = 0f;
 
         if (spriteRenderer != null) spriteRenderer.enabled = true;
 
