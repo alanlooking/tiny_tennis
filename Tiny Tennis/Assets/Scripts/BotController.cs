@@ -27,14 +27,20 @@ public class BotController : MonoBehaviour
     [Tooltip("Шанс, что бот ответит кручёным (Alternate) ударом")]
     [SerializeField, Range(0f, 1f)] private float spinChance = 0.3f;
 
+    [Header("Анимации")]
+    [SerializeField] private Animator animator;
+    [SerializeField] private string primaryHitTrigger = "HitPrimary";
+    [SerializeField] private string alternateHitTrigger = "HitAlternate";
+    [SerializeField] private string isMovingBool = "IsMoving";
+
     private Rigidbody2D rb;
     private Ball ball;
 
-    private bool wasHeadingToBot = false;  // Прошлое направление мяча
-    private bool hasNoticedBall = false;   // Бот "заметил" мяч после задержки
-    private float noticeTime;              // Момент, когда бот заметит мяч
-    private float nextThinkTime;           // Следующий пересмотр прогноза
-    private float aimErrorOffset;          // Погрешность "глаза" на текущий приём
+    private bool wasHeadingToBot = false;
+    private bool hasNoticedBall = false;
+    private float noticeTime;
+    private float nextThinkTime;
+    private float aimErrorOffset;
     private float currentTargetX;
 
     private void Awake()
@@ -45,6 +51,28 @@ public class BotController : MonoBehaviour
     private void Start()
     {
         ball = FindFirstObjectByType<Ball>();
+        if (ball != null)
+        {
+            ball.OnBotHit += HandleBotHit;
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (ball != null)
+        {
+            ball.OnBotHit -= HandleBotHit;
+        }
+    }
+
+    // Мяч сообщает: бот ударил (включая подачу)
+    private void HandleBotHit(HitType hitType)
+    {
+        if (animator == null) return;
+
+        animator.SetTrigger(hitType == HitType.Primary
+            ? primaryHitTrigger
+            : alternateHitTrigger);
     }
 
     private void FixedUpdate()
@@ -69,7 +97,7 @@ public class BotController : MonoBehaviour
                 if (!hasNoticedBall)
                 {
                     hasNoticedBall = true;
-                    nextThinkTime = 0f; // подумать немедленно
+                    nextThinkTime = 0f;
                 }
 
                 if (Time.time >= nextThinkTime)
@@ -91,32 +119,35 @@ public class BotController : MonoBehaviour
         }
 
         float newX = Mathf.MoveTowards(rb.position.x, targetX, speed * Time.fixedDeltaTime);
+
+        // Анимация ходьбы: бот реально смещается в этом физическом шаге?
+        if (animator != null)
+        {
+            animator.SetBool(isMovingBool, Mathf.Abs(newX - rb.position.x) > 0.001f);
+        }
+
         rb.MovePosition(new Vector2(newX, targetY));
     }
 
-    // Прогноз точки прилёта мяча на линию Y бота
     private float PredictLandingX()
     {
         Vector2 pos = ball.transform.position;
         Vector2 vel = ball.Velocity;
 
-        if (vel.y <= 0.01f) return pos.x;    // мяч не движется к боту
-        if (pos.y >= targetY) return pos.x;  // мяч уже за линией бота
+        if (vel.y <= 0.01f) return pos.x;
+        if (pos.y >= targetY) return pos.x;
 
         // Насколько бот "видит" кручение (0 — полностью игнорирует)
         float effectiveSpin = ball.Spin * spinReading;
 
         if (Mathf.Abs(effectiveSpin) < 0.01f)
         {
-            // Прямолинейный прогноз (как раньше)
             float timeToLine = (targetY - pos.y) / vel.y;
             return pos.x + vel.x * timeToLine;
         }
 
-        // Бот "симулирует" полёт кручёного мяча в голове —
-        // пошагово повторяя ту же физику, что делает FixedUpdate мяча
         float step = 0.02f;
-        int maxSteps = 500; // страховка от вечного цикла
+        int maxSteps = 500;
         Vector2 prevPos = pos;
 
         for (int i = 0; i < maxSteps; i++)
@@ -130,7 +161,6 @@ public class BotController : MonoBehaviour
 
             if (pos.y >= targetY)
             {
-                // Точная точка пересечения — интерполяция между шагами
                 float t = (targetY - prevPos.y) / (pos.y - prevPos.y);
                 return Mathf.Lerp(prevPos.x, pos.x, t);
             }
@@ -139,7 +169,6 @@ public class BotController : MonoBehaviour
         return pos.x;
     }
 
-    // Выбор типа удара: с шансом spinChance бот отвечает кручёным
     public HitType ChooseHitType()
     {
         return Random.value <= spinChance ? HitType.Alternate : HitType.Primary;

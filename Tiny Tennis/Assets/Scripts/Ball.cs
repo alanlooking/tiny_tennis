@@ -40,7 +40,7 @@ public class Ball : MonoBehaviour
 
     // События для анимаций ракеток
     public event System.Action<HitType> OnPlayerHit;
-    public event System.Action OnBotHit;
+    public event System.Action<HitType> OnBotHit; // теперь с типом удара
 
     // Game feel: события для камеры, трейла и UI
     public event System.Action<int, float> OnRallyHit; // (номер удара, сила удара 0..1)
@@ -249,7 +249,7 @@ public class Ball : MonoBehaviour
 
         // Уведомляем анимации, какой удар сыгран
         if (headingToBot) OnPlayerHit?.Invoke(hitType);
-        else OnBotHit?.Invoke();
+        else OnBotHit?.Invoke(hitType);
 
         // Game feel: камера, трейл и UI узнают об ударе
         hitsInRally++;

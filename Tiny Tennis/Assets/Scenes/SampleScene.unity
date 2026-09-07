@@ -441,6 +441,7 @@ MonoBehaviour:
   animator: {fileID: 148821758}
   primaryHitTrigger: HitPrimary
   alternateHitTrigger: HitAlternate
+  isMovingBool: IsMoving
 --- !u!95 &148821758
 Animator:
   serializedVersion: 7
@@ -1107,6 +1108,7 @@ GameObject:
   - component: {fileID: 816321910}
   - component: {fileID: 816321911}
   - component: {fileID: 816321912}
+  - component: {fileID: 816321913}
   m_Layer: 0
   m_Name: Bot
   m_TagString: Bot
@@ -1206,6 +1208,10 @@ MonoBehaviour:
   aimError: 0.5
   spinReading: 0
   spinChance: 0.3
+  animator: {fileID: 816321913}
+  primaryHitTrigger: HitPrimary
+  alternateHitTrigger: HitAlternate
+  isMovingBool: IsMoving
 --- !u!50 &816321911
 Rigidbody2D:
   serializedVersion: 5
@@ -1279,6 +1285,28 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 1, y: 1}
   m_EdgeRadius: 0
+--- !u!95 &816321913
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 816321907}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 14ad9388c34be85459e7b57e3b8eb16c, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!1 &1034117173
 GameObject:
   m_ObjectHideFlags: 0
