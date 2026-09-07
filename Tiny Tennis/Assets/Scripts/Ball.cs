@@ -55,6 +55,7 @@ public class Ball : MonoBehaviour
     // Публичные свойства для BotController
     public bool IsServed => isServed;
     public bool IsHeadingToBot => isHeadingToBot;
+    public Vector2 Velocity => rb.linearVelocity; // скорость мяча для прогноза бота
 
     private void Awake()
     {
