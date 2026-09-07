@@ -2,40 +2,54 @@ using UnityEngine;
 
 public class BotController : MonoBehaviour
 {
+    [Header("Движение")]
     [SerializeField] private float speed = 6f;
-    [SerializeField] private float targetY = 3.5f; // Фиксированная линия Y бота
-    [SerializeField] private float defaultX = 0f;  // Центр стола по X
+    [SerializeField] private float targetY = 3.5f;   // Фиксированная линия Y бота
+    [SerializeField] private float defaultX = 0f;    // "Дом" — центр стола
 
-    private Transform ballTransform;
-    private Vector3 defaultPosition;
+    [Header("Границы перемещения")]
+    [SerializeField] private float minX = -2.5f;
+    [SerializeField] private float maxX = 2.5f;
+
+    private Rigidbody2D rb;
+    private Ball ball;
+
+    private void Awake()
+    {
+        rb = GetComponent<Rigidbody2D>();
+    }
 
     private void Start()
     {
-        defaultPosition = new Vector3(defaultX, targetY, transform.position.z);
-        
-        Ball ball = FindFirstObjectByType<Ball>();
-        if (ball != null)
-        {
-            ballTransform = ball.transform;
-        }
+        ball = FindFirstObjectByType<Ball>();
     }
 
-    private void Update()
+    private void FixedUpdate()
     {
-        if (ballTransform == null) return;
+        if (ball == null) return;
 
-        // Рассчитываем целевую X, но не даём боту выходить за пределы стола (например, от -2.5f до 2.5f)
-        float clampedBallX = Mathf.Clamp(ballTransform.position.x, -2.5f, 2.5f);
+        float targetX;
 
-        float targetX = Mathf.MoveTowards(transform.position.x, clampedBallX, speed * Time.deltaTime);
-        transform.position = new Vector3(targetX, targetY, transform.position.z);
+        if (ball.IsServed && ball.IsHeadingToBot)
+        {
+            // Мяч в игре и летит к боту — защищаемся
+            targetX = Mathf.Clamp(ball.transform.position.x, minX, maxX);
+        }
+        else
+        {
+            // Мяч не подан или летит к игроку — возвращаемся "домой"
+            targetX = defaultX;
+        }
+
+        // Двигаем риджидбоди через MovePosition — физика и transform
+        // остаются синхронными, никакого конфликта
+        float newX = Mathf.MoveTowards(rb.position.x, targetX, speed * Time.fixedDeltaTime);
+        rb.MovePosition(new Vector2(newX, targetY));
     }
 
-    // Метод для сброса позиции в центр
+    // Мгновенный сброс позиции после розыгрыша
     public void ResetPosition()
     {
-        // Рандомный X строго для бота в пределах корта (подставь свои границы X)
-        float randomX = Random.Range(-2.2f, 2.2f);
-        transform.position = new Vector3(randomX, targetY, transform.position.z);
+        rb.position = new Vector2(defaultX, targetY);
     }
 }

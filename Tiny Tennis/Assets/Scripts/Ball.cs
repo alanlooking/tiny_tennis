@@ -24,23 +24,36 @@ public class Ball : MonoBehaviour
     [SerializeField] private float playerHitRadius = 1.6f;
     [SerializeField] private float botHitRadius = 1f;
 
-    [Header("Граница аута")]
+    [Header("Границы аута")]
     [SerializeField] private float outBoundsY = 7.5f;
+    [SerializeField] private float outBoundsX = 9f;
+
+    [Header("Страховка от зависания розыгрыша")]
+    [SerializeField] private float roundTimeout = 8f;
 
     private Rigidbody2D rb;
+    private SpriteRenderer spriteRenderer;
+    private BotController bot;
     private float currentSpeed;
+    private float lastHitTime;
+
     private bool isServed = false;
     private bool isPlayerServing = true;
     private bool isHeadingToBot = true;
     private Coroutine botServeCoroutine;
 
-    private bool isProcessingMiss = false;
     private bool isRoundEnding = false;
-    private bool hasHitTargetArea = false; // Флаг: мяч коснулся целевой зоны стола
+    private bool hasHitTargetArea = false;
+
+    // Публичные свойства для BotController
+    public bool IsServed => isServed;
+    public bool IsHeadingToBot => isHeadingToBot;
 
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
+        spriteRenderer = GetComponent<SpriteRenderer>();
+        bot = FindFirstObjectByType<BotController>();
     }
 
     private void Update()
@@ -61,7 +74,7 @@ public class Ball : MonoBehaviour
             return;
         }
 
-        // 2. Удар Игрока
+        // 2. Удар Игрока (мяч летит к игроку)
         if (!isHeadingToBot)
         {
             float distanceToPlayer = Vector2.Distance(transform.position, playerTransform.position);
@@ -71,7 +84,7 @@ public class Ball : MonoBehaviour
             }
         }
 
-        // 3. Удар Бота
+        // 3. Удар Бота (мяч летит к боту)
         if (isHeadingToBot)
         {
             float distanceToBot = Vector2.Distance(transform.position, botTransform.position);
@@ -81,8 +94,10 @@ public class Ball : MonoBehaviour
             }
         }
 
-        // 4. ПРОВЕРКА НА ВЫЛЕТ ЗА ЭКРАН
-        if (Mathf.Abs(transform.position.y) > outBoundsY)
+        // 4. Проверка на вылет за границы ИЛИ зависание розыгрыша
+        if (Mathf.Abs(transform.position.y) > outBoundsY ||
+            Mathf.Abs(transform.position.x) > outBoundsX ||
+            Time.time - lastHitTime > roundTimeout)
         {
             ProcessOutOrScore();
         }
@@ -95,7 +110,6 @@ public class Ball : MonoBehaviour
     {
         if (isRoundEnding) return;
 
-        // Если мяч летел к боту и попал в зону бота OR летел к игроку и попал в зону игрока
         if ((isHeadingToBot && isBotSideArea) || (!isHeadingToBot && !isBotSideArea))
         {
             hasHitTargetArea = true;
@@ -109,17 +123,18 @@ public class Ball : MonoBehaviour
         isRoundEnding = true;
 
         rb.linearVelocity = Vector2.zero;
+        if (spriteRenderer != null) spriteRenderer.enabled = false;
 
         bool playerWonPoint;
 
         if (hasHitTargetArea)
         {
-            // Мяч КОСНУЛСЯ стола, но принимающий его пропустил -> Очко БЬЮЩЕМУ
+            // Мяч попал в стол, принимающий не отбил -> Очко бьющему
             playerWonPoint = isHeadingToBot;
         }
         else
         {
-            // Мяч НЕ коснулся стола (АУТ) -> Очко ПРИНИМАЮЩЕМУ
+            // Аут -> Очко принимающему
             playerWonPoint = !isHeadingToBot;
         }
 
@@ -146,8 +161,8 @@ public class Ball : MonoBehaviour
 
     private void HitBallToCourt(bool headingToBot)
     {
-        isProcessingMiss = false;
-        hasHitTargetArea = false; // Сбрасываем касание стола перед новым ударом
+        lastHitTime = Time.time;
+        hasHitTargetArea = false;
         isHeadingToBot = headingToBot;
 
         if (!isServed)
@@ -181,43 +196,14 @@ public class Ball : MonoBehaviour
         rb.linearVelocity = direction * currentSpeed;
     }
 
-    private void OnCollisionEnter2D(Collision2D collision)
-    {
-        if (!isServed || isProcessingMiss || isRoundEnding) return;
-
-        if (!isHeadingToBot && (collision.gameObject.CompareTag("Player") || collision.gameObject.name == "Player"))
-        {
-            StartCoroutine(DelayedBodyHitPoint(false));
-        }
-        else if (isHeadingToBot && (collision.gameObject.CompareTag("Bot") || collision.gameObject.name == "Bot"))
-        {
-            StartCoroutine(DelayedBodyHitPoint(true));
-        }
-    }
-
-    private IEnumerator DelayedBodyHitPoint(bool playerWonPoint)
-    {
-        isProcessingMiss = true;
-
-        yield return new WaitForSeconds(0.2f);
-
-        if (isProcessingMiss && !isRoundEnding)
-        {
-            isRoundEnding = true;
-            rb.linearVelocity = Vector2.zero;
-            GameManager.Instance.ScorePoint(playerWonPoint);
-        }
-    }
-
     public void ResetForServe(bool playerServes)
     {
         if (botServeCoroutine != null) StopCoroutine(botServeCoroutine);
 
-        isProcessingMiss = false;
         isRoundEnding = false;
         hasHitTargetArea = false;
+        lastHitTime = Time.time;
 
-        BotController bot = FindFirstObjectByType<BotController>();
         if (bot != null) bot.ResetPosition();
 
         isServed = false;
@@ -225,6 +211,8 @@ public class Ball : MonoBehaviour
         isHeadingToBot = playerServes;
         currentSpeed = serveSpeed;
         rb.linearVelocity = Vector2.zero;
+
+        if (spriteRenderer != null) spriteRenderer.enabled = true;
 
         if (!isPlayerServing)
         {
