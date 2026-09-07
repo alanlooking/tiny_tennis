@@ -17,6 +17,7 @@ public class GameManager : MonoBehaviour
 
     [Header("UI Ссылки")]
     [SerializeField] private Text scoreText;
+    [SerializeField] private Text rallyText; // Счётчик ударов в текущем розыгрыше
     [SerializeField] private Text serveIndicatorText; // Необязательно: покажет чья подача
 
     private Ball ball;
@@ -33,8 +34,15 @@ public class GameManager : MonoBehaviour
             return;
         }
 
-        // ИСПРАВЛЕНО: Присваиваем значение полю класса, а не создаем локальную переменную
         ball = FindFirstObjectByType<Ball>();
+
+        // Подписка здесь: Awake вызывается один раз за жизнь объекта,
+        // поэтому события не подпишутся повторно при новом матче
+        if (ball != null)
+        {
+            ball.OnRallyHit += HandleRallyHit;
+            ball.OnRallyReset += HandleRallyReset;
+        }
     }
 
     private void Start()
@@ -55,7 +63,6 @@ public class GameManager : MonoBehaviour
 
         // Если при старте ball не успел найтись в Awake, пробуем найти ещё раз
         if (ball == null) ball = FindFirstObjectByType<Ball>();
-
         if (ball != null)
         {
             ball.ResetForServe(isPlayerServing);
@@ -96,6 +103,35 @@ public class GameManager : MonoBehaviour
         else
         {
             StartCoroutine(ResetRoundWithDelay(1.0f));
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (ball != null)
+        {
+            ball.OnRallyHit -= HandleRallyHit;
+            ball.OnRallyReset -= HandleRallyReset;
+        }
+    }
+
+    // Мяч сообщает: в розыгрыше N-й удар
+    private void HandleRallyHit(int hitNumber, float power01)
+    {
+        UpdateRallyText(hitNumber);
+    }
+
+    // Розыгрыш сброшен — счётчик в ноль
+    private void HandleRallyReset()
+    {
+        UpdateRallyText(0);
+    }
+
+    private void UpdateRallyText(int hits)
+    {
+        if (rallyText != null)
+        {
+            rallyText.text = hits > 0 ? $"Ударов в розыгрыше: {hits}" : "";
         }
     }
 

@@ -42,12 +42,17 @@ public class Ball : MonoBehaviour
     public event System.Action<HitType> OnPlayerHit;
     public event System.Action OnBotHit;
 
+    // Game feel: события для камеры, трейла и UI
+    public event System.Action<int, float> OnRallyHit; // (номер удара, сила удара 0..1)
+    public event System.Action OnRallyReset;           // розыгрыш начался заново
+
     private Rigidbody2D rb;
     private SpriteRenderer spriteRenderer;
     private BotController bot;
     private float currentSpeed;
     private float lastHitTime;
     private float spin; // Текущая закрутка: 0 = мяч летит прямо
+    private int hitsInRally; // Счётчик ударов в текущем розыгрыше
 
     private bool isServed = false;
     private bool isPlayerServing = true;
@@ -245,6 +250,11 @@ public class Ball : MonoBehaviour
         // Уведомляем анимации, какой удар сыгран
         if (headingToBot) OnPlayerHit?.Invoke(hitType);
         else OnBotHit?.Invoke();
+
+        // Game feel: камера, трейл и UI узнают об ударе
+        hitsInRally++;
+        float power = Mathf.InverseLerp(serveSpeed, maxSpeed, currentSpeed);
+        OnRallyHit?.Invoke(hitsInRally, power);
     }
 
     public void ResetForServe(bool playerServes)
@@ -263,6 +273,8 @@ public class Ball : MonoBehaviour
         currentSpeed = serveSpeed;
         rb.linearVelocity = Vector2.zero;
         spin = 0f;
+        hitsInRally = 0;
+        OnRallyReset?.Invoke();
 
         if (spriteRenderer != null) spriteRenderer.enabled = true;
 
