@@ -1,7 +1,7 @@
 ﻿using System.Collections;
 using UnityEngine;
 
-// Тип удара — используется пока только для анимаций
+// Тип удара — используется анимациями
 public enum HitType { Primary, Alternate }
 
 public class Ball : MonoBehaviour
@@ -34,7 +34,7 @@ public class Ball : MonoBehaviour
     [Header("Страховка от зависания розыгрыша")]
     [SerializeField] private float roundTimeout = 8f;
 
-    // События для анимаций ракеток (подпишешься, когда появятся Animator'ы)
+    // События для анимаций ракеток
     public event System.Action<HitType> OnPlayerHit;
     public event System.Action OnBotHit;
 
@@ -67,7 +67,7 @@ public class Ball : MonoBehaviour
     {
         if (isRoundEnding) return;
 
-        // 1. Подача (осталась на Space; анимация — основная)
+        // 1. Подача (Space) — анимация выбирается случайно
         if (!isServed)
         {
             Transform currentServer = isPlayerServing ? playerTransform : botTransform;
@@ -76,7 +76,8 @@ public class Ball : MonoBehaviour
 
             if (isPlayerServing && Input.GetKeyDown(KeyCode.Space))
             {
-                ExecuteServe();
+                HitType serveType = Random.value > 0.5f ? HitType.Primary : HitType.Alternate;
+                ExecuteServe(serveType);
             }
             return;
         }
@@ -155,11 +156,11 @@ public class Ball : MonoBehaviour
         GameManager.Instance.ScorePoint(playerWonPoint);
     }
 
-    public void ExecuteServe()
+    public void ExecuteServe(HitType hitType)
     {
         isServed = true;
         currentSpeed = serveSpeed;
-        HitBallToCourt(isPlayerServing, HitType.Primary);
+        HitBallToCourt(isPlayerServing, hitType);
     }
 
     private IEnumerator BotServeRoutine()
@@ -167,7 +168,8 @@ public class Ball : MonoBehaviour
         yield return new WaitForSeconds(botServeDelay);
         if (!isServed && !isPlayerServing)
         {
-            ExecuteServe();
+            // Тип для бота не важен: его анимация завязана на событие OnBotHit
+            ExecuteServe(HitType.Primary);
         }
     }
 
@@ -207,7 +209,7 @@ public class Ball : MonoBehaviour
 
         rb.linearVelocity = direction * currentSpeed;
 
-        // Уведомляем будущие анимации, какой удар был сыгран
+        // Уведомляем анимации, какой удар сыгран
         if (headingToBot) OnPlayerHit?.Invoke(hitType);
         else OnBotHit?.Invoke();
     }
