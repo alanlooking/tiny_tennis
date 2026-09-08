@@ -86,7 +86,7 @@ public class Ball : MonoBehaviour
             float offsetYSide = isPlayerServing ? 0.6f : -0.6f;
             transform.position = currentServer.position + new Vector3(0f, offsetYSide, 0f);
 
-            if (isPlayerServing && Input.GetKeyDown(KeyCode.Space))
+            if (isPlayerServing && Input.GetKeyDown(KeyCode.Space) && GameManager.Instance.MatchStarted)
             {
                 HitType serveType = Random.value > 0.5f ? HitType.Primary : HitType.Alternate;
                 ExecuteServe(serveType);

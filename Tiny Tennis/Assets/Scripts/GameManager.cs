@@ -6,6 +6,9 @@ public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
 
+    // Матч начался? До выбора персонажа — false
+    public bool MatchStarted { get; private set; }
+
     [Header("Счёт Матча")]
     public int playerScore = 0;
     public int botScore = 0;
@@ -45,13 +48,9 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    private void Start()
-    {
-        StartNewMatch();
-    }
-
     public void StartNewMatch()
     {
+        MatchStarted = true;
         playerScore = 0;
         botScore = 0;
         totalPointsPlayed = 0;

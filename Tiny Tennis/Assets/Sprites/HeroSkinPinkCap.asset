@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6a791a88200d4a245be11ae916fe702a, type: 3}
+  m_Name: HeroSkinPinkCap
+  m_EditorClassIdentifier: 
+  displayName: SkinPinkCap
+  portrait: {fileID: -6823401910282771389, guid: d8faeacfdbd0ea74bbb8c090c1a8c647, type: 3}
+  idleClip: {fileID: 7400000, guid: 2b5e7bb6f75e8b54f8a62cf5ebdd3d9a, type: 2}
+  walkClip: {fileID: 7400000, guid: c3c7e9932d0da8a4b8e78949f7e85b5c, type: 2}
+  hitPrimaryClip: {fileID: 7400000, guid: d89e495633453074b81e696b8d40c43a, type: 2}
+  hitAlternateClip: {fileID: 7400000, guid: e29396642aca64f4d991277708aeb49d, type: 2}

@@ -1,16 +1,10 @@
 fileFormatVersion: 2
-guid: 558c3881cbdccae4abba0a5dca2d0c34
+guid: 4053de1906f0769409993d429c52ce6c
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -2080888330362231691
-    second: blonde_guy_north_walking_0
-  - first:
-      213: -2038272451819729864
-    second: blonde_guy_north_walking_1
-  - first:
-      213: -3992649554561694845
-    second: blonde_guy_north_walking_2
+      213: 5311518700113882398
+    second: blonde_guy_ava_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -57,7 +51,7 @@ TextureImporter:
   spriteMeshType: 1
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
-  spritePixelsToUnits: 32
+  spritePixelsToUnits: 100
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -145,13 +139,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: blonde_guy_north_walking_0
+      name: blonde_guy_ava_0
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 19
-        height: 30
+        width: 1254
+        height: 1254
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -160,52 +154,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 574e08ba6133f13e0800000000000000
-      internalID: -2080888330362231691
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: blonde_guy_north_walking_1
-      rect:
-        serializedVersion: 2
-        x: 31
-        y: 0
-        width: 20
-        height: 30
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 83c02d9110a96b3e0800000000000000
-      internalID: -2038272451819729864
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: blonde_guy_north_walking_2
-      rect:
-        serializedVersion: 2
-        x: 63
-        y: 0
-        width: 20
-        height: 30
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 3838ab352624798c0800000000000000
-      internalID: -3992649554561694845
+      spriteID: e1de12abd1e46b940800000000000000
+      internalID: 5311518700113882398
       vertices: []
       indices: 
       edges: []
@@ -224,9 +174,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      blonde_guy_north_walking_0: -2080888330362231691
-      blonde_guy_north_walking_1: -2038272451819729864
-      blonde_guy_north_walking_2: -3992649554561694845
+      blonde_guy_ava_0: 5311518700113882398
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
