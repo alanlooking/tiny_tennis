@@ -74,8 +74,8 @@ public class SkinSelectionScreen : MonoBehaviour
         // Справа — клипы из ассета скина (могут называться как угодно).
         overrideController["idle_north"] = skin.idleClip;
         overrideController["walking_north"] = skin.walkClip;
-        overrideController["second_punch_north"] = skin.hitPrimaryClip;
-        overrideController["first_punch"] = skin.hitAlternateClip;
+        overrideController["first_punch"] = skin.hitPrimaryClip;
+        overrideController["second_punch_north"] = skin.hitAlternateClip;
         Debug.Log($"[Выбор] Применяю скин '{skin.displayName}': Idle={skin.idleClip.name}, Walk={skin.walkClip.name}");
         animator.runtimeAnimatorController = overrideController;
         return true;
