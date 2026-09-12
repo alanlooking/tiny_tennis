@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: HeroSkinPinkCap
   m_EditorClassIdentifier: 
   displayName: SkinPinkCap
-  portrait: {fileID: -6823401910282771389, guid: d8faeacfdbd0ea74bbb8c090c1a8c647, type: 3}
+  portrait: {fileID: -6878226324311285336, guid: 2fb96f5683f8d264d8c1d0fba586f37b, type: 3}
   idleClip: {fileID: 7400000, guid: 2b5e7bb6f75e8b54f8a62cf5ebdd3d9a, type: 2}
   walkClip: {fileID: 7400000, guid: c3c7e9932d0da8a4b8e78949f7e85b5c, type: 2}
-  hitPrimaryClip: {fileID: 7400000, guid: d89e495633453074b81e696b8d40c43a, type: 2}
+  hitPrimaryClip: {fileID: 7400000, guid: 54b070fb2f34c7e4090c0708e528a706, type: 2}
   hitAlternateClip: {fileID: 7400000, guid: e29396642aca64f4d991277708aeb49d, type: 2}
