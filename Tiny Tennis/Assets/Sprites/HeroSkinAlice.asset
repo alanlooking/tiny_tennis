@@ -10,10 +10,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6a791a88200d4a245be11ae916fe702a, type: 3}
-  m_Name: HeroSkinBlondeGuy
+  m_Name: HeroSkinAlice
   m_EditorClassIdentifier: 
-  displayName: SkinBlondeGuy
-  portrait: {fileID: 5311518700113882398, guid: 4053de1906f0769409993d429c52ce6c, type: 3}
+  displayName: SkinAlice
+  portrait: {fileID: 500535091139478823, guid: 725990c41ec32f746944e11ef45bfc2d, type: 3}
   idleClip: {fileID: 7400000, guid: 631963ef6a2182245bb1b539ffb68737, type: 2}
   walkClip: {fileID: 7400000, guid: 2883c5a27a8dfd947bae325e04f0167a, type: 2}
   hitPrimaryClip: {fileID: 7400000, guid: 2451fedace977524aafc6387e1bdc80d, type: 2}
