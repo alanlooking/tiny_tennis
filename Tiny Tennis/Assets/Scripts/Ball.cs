@@ -193,6 +193,10 @@ public class Ball : MonoBehaviour
         isServed = true;
         currentSpeed = serveSpeed;
         HitBallToCourt(isPlayerServing, hitType);
+
+        // Подача всегда прямая: гасим закрутку, даже если
+        // анимация выпала альтернативная
+        spin = 0f;
     }
 
     private IEnumerator BotServeRoutine()
